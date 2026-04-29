@@ -1,0 +1,81 @@
+name: Build Image and Promote via GitOps
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  build-and-promote:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout application repository
+        uses: actions/checkout@v4
+
+      - name: Derive release metadata
+        run: |
+          echo "IMAGE_TAG=${GITHUB_SHA}" >> $GITHUB_ENV
+          echo "APP_VERSION=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+      - name: Configure AWS credentials through OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        run: |
+          aws ecr get-login-password --region ${{ vars.AWS_REGION }} \
+          | docker login --username AWS --password-stdin ${{ vars.ECR_REPOSITORY }}
+
+      - name: Build Docker image
+        run: |
+          docker build \
+            -t ${{ vars.ECR_REPOSITORY }}:${IMAGE_TAG} \
+            -t ${{ vars.ECR_REPOSITORY }}:${APP_VERSION} \
+            .
+
+      - name: Smoke test image before promotion
+        run: |
+          docker run -d --name smoke -p 5000:5000 \
+            -e APP_VERSION=${APP_VERSION} \
+            ${{ vars.ECR_REPOSITORY }}:${IMAGE_TAG}
+          sleep 5
+          curl -f http://localhost:5000/health
+          docker rm -f smoke
+
+      - name: Push Docker image to ECR
+        run: |
+          docker push ${{ vars.ECR_REPOSITORY }}:${IMAGE_TAG}
+          docker push ${{ vars.ECR_REPOSITORY }}:${APP_VERSION}
+
+      - name: Checkout GitOps repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.CONFIG_REPO }}
+          token: ${{ secrets.CONFIG_REPO_TOKEN }}
+          path: config-repo
+
+      - name: Update desired state in GitOps repository
+        run: |
+          cd config-repo/${{ vars.CONFIG_PATH }}
+
+          sed -i "s|image: .*|image: ${{ vars.ECR_REPOSITORY }}:${IMAGE_TAG}|g" deployment.yaml
+          sed -i "s|value: .*|value: \"${APP_VERSION}\"|g" deployment.yaml
+
+          git config user.name "github-actions"
+          git config user.email "github-actions@example.com"
+
+          if git diff --quiet; then
+            echo "No GitOps change detected."
+            exit 0
+          fi
+
+          git add deployment.yaml
+          git commit -m "Deploy prod-cicd-demo ${APP_VERSION}"
+          git push
