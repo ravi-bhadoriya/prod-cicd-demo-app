@@ -2,7 +2,7 @@
 
 This is the application repository.
 
-It contains::
+It contains:
 
 - Flask application
 - Dockerfile
