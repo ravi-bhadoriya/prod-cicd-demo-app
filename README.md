@@ -1,6 +1,6 @@
 # prod-cicd-demo-app
 
-This is the application repository
+This is the application repository.
 
 It contains:
 
