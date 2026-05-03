@@ -7,7 +7,7 @@ VERSION = os.getenv("APP_VERSION", "local")
 
 @app.route("/")
 def home():
-    return f"Hello from production CI/CD demo. failure 3rd. Version: {VERSION}\n"
+    raise Exception("route broken")
 
 @app.route("/health")
 def health():
