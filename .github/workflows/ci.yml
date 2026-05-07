@@ -38,7 +38,8 @@ jobs:
           pip install pytest bandit
 
       - name: Run unit tests
-        run: pytest tests/ -v
+        run: |
+          PYTHONPATH=. pytest tests/ -v
 
       - name: Run Python security scan
         run: bandit -r . -x tests
