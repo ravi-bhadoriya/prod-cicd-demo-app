@@ -131,7 +131,7 @@ jobs:
       - name: Update GitOps manifest
         if: github.event_name == 'push'
         run: |
-          cd config-repo/apps/prod-cicd-demo/base
+          cd config-repo/apps/prod-cicd-demo
 
           sed -i "s|image: .*|image: ${{ vars.ECR_URL }}:${IMAGE_TAG}|g" deployment.yaml
           sed -i "s|value: .*|value: \"${SHORT_SHA}\"|g" deployment.yaml
