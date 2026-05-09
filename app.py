@@ -27,7 +27,8 @@ def home():
   "application": "prod-cicd-demo",
   "version": "{VERSION}",
   "environment": "{ENVIRONMENT}",
-  "hostname": "{HOSTNAME}"
+  "hostname": "{HOSTNAME}",
+  "deployment_strategy": "rolling-update"
 }}</pre>
       </body>
     </html>
