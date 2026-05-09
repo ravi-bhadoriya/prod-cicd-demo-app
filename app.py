@@ -28,7 +28,7 @@ def home():
   "version": "{VERSION}",
   "environment": "{ENVIRONMENT}",
   "hostname": "{HOSTNAME}",
-  "deployment_strategy": "rolling-update"
+  "deployment_strategy": "recreate"
 }}</pre>
       </body>
     </html>
